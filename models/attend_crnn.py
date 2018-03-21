@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import torch
+import numpy as np
 import torch.nn as nn
 from torch.autograd import Variable
 import torch.nn.functional as F
 
-class BidirectionalLSTM(nn.Module):
 
+class BidirectionalLSTM(nn.Module):
     def __init__(self, num_features, hidden_size, output_size):
         super(BidirectionalLSTM, self).__init__()
 
@@ -25,7 +26,6 @@ class BidirectionalLSTM(nn.Module):
 
 
 class AttentionLayer(nn.Module):
-
     def __init__(self, input_dim, output_dim, relation_aware=False):
         super(AttentionLayer, self).__init__()
 
@@ -36,7 +36,7 @@ class AttentionLayer(nn.Module):
 
     def forward(self, x):
         batch_size, seq_len, num_features = x.size()
-        
+        z = Variable(torch.zeros((batch_size, seq_len, self.output_dim)))
         for i in xrange(batch_size):
             xq = self.linear_q(x[i])
             xk = self.linear_k(x[i])
@@ -47,21 +47,26 @@ class AttentionLayer(nn.Module):
 
             for m in xrange(seq_len):
                 for n in xrange(seq_len):
-                    e[m, n] = torch.exp(1/torch.sqrt(self.output_dim) * xq[m].dot(xk[n]))
-                alpha[m] = e[m]/torch.sum(e[m])
+                    e[m, n] = torch.exp(xq[m].dot(xk[n]) / np.sqrt(self.output_dim))
+                alpha[m] = e[m] / torch.sum(e[m])
+                for n in xrange(seq_len):
+                    z[i, m] = alpha[m][n]*xv[n]
+
+        return z
 
 
-
-            # xq = Variable(torch.zeros((seq_len, outpu)))
-
-
+def __test__attention_layer():
+    atten_layer = AttentionLayer(input_dim=4, output_dim=3)
+    x = Variable(torch.randn((2, 3, 4)))
+    print(x)
+    result = atten_layer(x)
+    print(result)
 
 
 class AttendCRNN(nn.Module):
-
     def __init__(self):
         super(AttendCRNN, self).__init__()
 
     def forward(self, x):
-
         pass
+
