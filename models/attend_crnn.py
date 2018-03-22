@@ -43,6 +43,7 @@ class AttentionLayer(nn.Module):
         xq = self.linear_q(x)
         xk = self.linear_k(x)
         xv = self.linear_v(x)
+        # 性能瓶颈
         for i in xrange(batch_size):
 
             e = Variable(torch.zeros((seq_len, seq_len)))

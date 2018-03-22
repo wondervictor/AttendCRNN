@@ -85,6 +85,12 @@ converter = utils.StrLabelConverter(opt.alphabet)
 criterion = CTCLoss()
 
 
+def adjust_lr(optimizer, epoch):
+    lr = opt.lr * (0.2 ** (epoch // 10))
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
+
+
 # custom weights initialization called on crnn
 def weights_init(m):
     classname = m.__class__.__name__
@@ -221,3 +227,7 @@ for epoch in range(opt.niter):
         if i % opt.saveInterval == 0:
             torch.save(
                 crnn.state_dict(), '{0}/netCRNN_{1}_{2}.pth'.format(opt.experiment, epoch, i))
+
+    if (epoch+1) % 10 == 0:
+
+        adjust_lr(optimizer, epoch+1)
