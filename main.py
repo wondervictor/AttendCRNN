@@ -138,7 +138,7 @@ else:
     optimizer = optim.RMSprop(crnn.parameters(), lr=opt.lr)
 
 
-def val(net, dataset, criterion, max_iter=100):
+def val(net, _dataset, criterion, max_iter=100):
     print('Start val')
 
     for p in crnn.parameters():
@@ -146,7 +146,7 @@ def val(net, dataset, criterion, max_iter=100):
 
     net.eval()
     data_loader = torch.utils.data.DataLoader(
-        dataset,
+        _dataset,
         shuffle=True,
         batch_size=opt.batch_size,
         num_workers=int(opt.workers),
