@@ -33,7 +33,12 @@ class IIIT5k(Dataset):
         # transform.extend([transforms.Grayscale(), transforms.ToTensor()])
         # transform = transforms.Compose(transform)
 
-        self.img = [Image.open(root+'/'+img) for img in self.img] # [transform(Image.open(root+'/'+img)) for img in self.img]
+        def open_img(name):
+            img = Image.open(root+'/'+name)
+            copy_image = img.copy()
+            img.close()
+            return copy_image
+        self.img = map(open_img, self.img)  # [Image.open(root+'/'+img) for img in self.img] # [transform(Image.open(root+'/'+img)) for img in self.img]
         print("Load Dataset: {} Finished".format('train' if training else 'test'))
 
     def __len__(self, ):
