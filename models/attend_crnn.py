@@ -40,10 +40,11 @@ class AttentionLayer(nn.Module):
         z = Variable(torch.zeros((batch_size, seq_len, self.output_dim)))
         if self.use_cuda:
             z = z.cuda()
+        xq = self.linear_q(x)
+        xk = self.linear_k(x)
+        xv = self.linear_v(x)
         for i in xrange(batch_size):
-            xq = self.linear_q(x[i])
-            xk = self.linear_k(x[i])
-            xv = self.linear_v(x[i])
+
             e = Variable(torch.zeros((seq_len, seq_len)))
             alpha = Variable(torch.zeros((seq_len, seq_len)))
             if self.use_cuda:
@@ -51,10 +52,10 @@ class AttentionLayer(nn.Module):
                 alpha = alpha.cuda()
             for m in xrange(seq_len):
                 for n in xrange(seq_len):
-                    e[m, n] = torch.exp(xq[m].clone().dot(xk[n].clone()) / np.sqrt(self.output_dim))
+                    e[m, n] = torch.exp(xq[i, m].clone().dot(xk[i, n].clone()) / np.sqrt(self.output_dim))
                 alpha[m] = e[m].clone() / torch.sum(e[m])
                 for n in xrange(seq_len):
-                    z[i, m] = alpha[m, n].clone()*xv[n].clone()
+                    z[i, m] = alpha[m, n].clone()*xv[i, n].clone()
 
         return z
 
@@ -133,7 +134,6 @@ class AttendCRNN(nn.Module):
         attend = self.attend_layer(conv)
         attend = attend.permute(1, 0, 2)  # [w, b, c]
         output = self.rnn(attend)
-        print(output.size())
         return output
 
 
