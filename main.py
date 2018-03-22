@@ -95,7 +95,7 @@ def weights_init(m):
         m.bias.data.fill_(0)
 
 
-crnn = attend_crnn.AttendCRNN(nc=nc, num_class=nclass, hidden_size=opt.nh) \
+crnn = attend_crnn.AttendCRNN(nc=nc, num_class=nclass, hidden_size=opt.nh, use_cuda=opt.cuda) \
     if opt.use_attention else crnn.CRNN(opt.imgH, nc, nclass, opt.nh)
 
 

@@ -26,10 +26,11 @@ class BidirectionalLSTM(nn.Module):
 
 
 class AttentionLayer(nn.Module):
-    def __init__(self, input_dim, output_dim, relation_aware=False):
+    def __init__(self, input_dim, output_dim, use_cuda, relation_aware=False):
         super(AttentionLayer, self).__init__()
 
         self.output_dim = output_dim
+        self.use_cuda = use_cuda
         self.linear_v = nn.Linear(input_dim, output_dim)
         self.linear_q = nn.Linear(input_dim, output_dim)
         self.linear_k = nn.Linear(input_dim, output_dim)
@@ -37,15 +38,17 @@ class AttentionLayer(nn.Module):
     def forward(self, x):
         batch_size, seq_len, num_features = x.size()
         z = Variable(torch.zeros((batch_size, seq_len, self.output_dim)))
-
+        if self.use_cuda:
+            z = z.cuda()
         for i in xrange(batch_size):
             xq = self.linear_q(x[i])
             xk = self.linear_k(x[i])
             xv = self.linear_v(x[i])
-
             e = Variable(torch.zeros((seq_len, seq_len)))
             alpha = Variable(torch.zeros((seq_len, seq_len)))
-
+            if self.use_cuda:
+                e = e.cuda()
+                alpha = alpha.cuda()
             for m in xrange(seq_len):
                 for n in xrange(seq_len):
                     e[m, n] = torch.exp(xq[m].clone().dot(xk[n].clone()) / np.sqrt(self.output_dim))
@@ -77,7 +80,7 @@ def __test__attention_layer():
 
 
 class AttendCRNN(nn.Module):
-    def __init__(self, nc, hidden_size, num_class, leaky_relu=True):
+    def __init__(self, nc, hidden_size, num_class, use_cuda, leaky_relu=True):
         super(AttendCRNN, self).__init__()
 
         ks = [3, 3, 3, 3, 3, 3, 2]
@@ -116,7 +119,7 @@ class AttendCRNN(nn.Module):
 
         self.cnn = cnn
 
-        self.attend_layer = AttentionLayer(input_dim=512, output_dim=512)
+        self.attend_layer = AttentionLayer(input_dim=512, output_dim=512, use_cuda=use_cuda)
         self.rnn = nn.Sequential(
             BidirectionalLSTM(512, hidden_size, hidden_size),
             BidirectionalLSTM(hidden_size, hidden_size, num_class))
