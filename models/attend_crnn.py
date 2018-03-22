@@ -37,6 +37,7 @@ class AttentionLayer(nn.Module):
     def forward(self, x):
         batch_size, seq_len, num_features = x.size()
         z = Variable(torch.zeros((batch_size, seq_len, self.output_dim)))
+
         for i in xrange(batch_size):
             xq = self.linear_q(x[i])
             xk = self.linear_k(x[i])
@@ -47,10 +48,10 @@ class AttentionLayer(nn.Module):
 
             for m in xrange(seq_len):
                 for n in xrange(seq_len):
-                    e[m, n] = torch.exp(xq[m].dot(xk[n]) / np.sqrt(self.output_dim))
-                alpha[m] = e[m] / torch.sum(e[m])
+                    e[m, n] = torch.exp(xq[m].clone().dot(xk[n].clone()) / np.sqrt(self.output_dim))
+                alpha[m] = e[m].clone() / torch.sum(e[m])
                 for n in xrange(seq_len):
-                    z[i, m] = alpha[m][n]*xv[n]
+                    z[i, m] = alpha[m, n].clone()*xv[n].clone()
 
         return z
 
@@ -61,6 +62,18 @@ def __test__attention_layer():
     print(x)
     result = atten_layer(x)
     print(result)
+    y = Variable(torch.randn((2, 3, 3)))
+    loss_criterion = nn.MSELoss()
+    loss = loss_criterion(result, y)
+    import torch.optim as optimizer
+    optimizer = optimizer.Adam(lr=0.001, params=atten_layer.parameters())
+    optimizer.zero_grad()
+    loss.backward()
+
+    optimizer.step()
+
+
+# __test__attention_layer()
 
 
 class AttendCRNN(nn.Module):
@@ -129,4 +142,3 @@ def __test_atten_crnn__():
 
     atten_crnn(images)
 
-__test_atten_crnn__()
