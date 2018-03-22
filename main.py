@@ -76,7 +76,7 @@ train_loader = torch.utils.data.DataLoader(
 #     num_workers=int(opt.workers),)
     # collate_fn=dataset.AlignCollate(img_height=opt.imgH, img_weight=opt.imgW, keep_ratio=opt.keep_ratio))
 
-test_dataset = dataset.IIIT5k(root=opt.valroot, training=False)
+test_dataset = dataset.IIIT5k(root=opt.valroot, training=False,)
 
 nclass = len(opt.alphabet) + 1
 nc = 1
@@ -146,7 +146,12 @@ def val(net, dataset, criterion, max_iter=100):
 
     net.eval()
     data_loader = torch.utils.data.DataLoader(
-        dataset, shuffle=True, batch_size=opt.batch_size, num_workers=int(opt.workers))
+        dataset,
+        shuffle=True,
+        batch_size=opt.batch_size,
+        num_workers=int(opt.workers),
+        collate_fn=dataset.AlignCollate(img_height=opt.imgH, img_weight=opt.imgW, keep_ratio=opt.keep_ratio)
+    )
     val_iter = iter(data_loader)
 
     i = 0
