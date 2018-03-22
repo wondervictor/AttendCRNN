@@ -64,9 +64,69 @@ def __test__attention_layer():
 
 
 class AttendCRNN(nn.Module):
-    def __init__(self):
+    def __init__(self, nc, hidden_size, num_class, leaky_relu=True):
         super(AttendCRNN, self).__init__()
 
-    def forward(self, x):
-        pass
+        ks = [3, 3, 3, 3, 3, 3, 2]
+        ps = [1, 1, 1, 1, 1, 1, 0]
+        ss = [1, 1, 1, 1, 1, 1, 1]
+        nm = [64, 128, 256, 256, 512, 512, 512]
 
+        cnn = nn.Sequential()
+
+        def conv_relu(i, batch_norm=False):
+            in_chan = nc if i == 0 else nm[i - 1]
+            out_chan = nm[i]
+            cnn.add_module('conv{0}'.format(i),
+                           nn.Conv2d(in_chan, out_chan, ks[i], ss[i], ps[i]))
+            if batch_norm:
+                cnn.add_module('batchnorm{0}'.format(i), nn.BatchNorm2d(out_chan))
+            if leaky_relu:
+                cnn.add_module('relu{0}'.format(i),
+                               nn.LeakyReLU(0.2, inplace=True))
+            else:
+                cnn.add_module('relu{0}'.format(i), nn.ReLU(True, inplace=True))
+
+        conv_relu(0)
+        cnn.add_module('pooling{0}'.format(0), nn.MaxPool2d(2, 2))  # 64x16x64
+        conv_relu(1)
+        cnn.add_module('pooling{0}'.format(1), nn.MaxPool2d(2, 2))  # 128x8x32
+        conv_relu(2, True)
+        conv_relu(3)
+        cnn.add_module('pooling{0}'.format(2),
+                       nn.MaxPool2d((2, 2), (2, 1), (0, 1)))  # 256x4x16
+        conv_relu(4, True)
+        conv_relu(5)
+        cnn.add_module('pooling{0}'.format(3),
+                       nn.MaxPool2d((2, 2), (2, 1), (0, 1)))  # 512x2x16
+        conv_relu(6, True)  # 512x1x16
+
+        self.cnn = cnn
+
+        self.attend_layer = AttentionLayer(input_dim=512, output_dim=512)
+        self.rnn = nn.Sequential(
+            BidirectionalLSTM(512, hidden_size, hidden_size),
+            BidirectionalLSTM(hidden_size, hidden_size, num_class))
+
+    def forward(self, x):
+        conv = self.cnn(x)
+        b, c, h, w = conv.size()
+        assert h == 1, "the height of conv must be 1"
+        conv = conv.squeeze(2)
+        conv = conv.permute(0, 2, 1)  # [b, w, c]
+        attend = self.attend_layer(conv)
+        attend = attend.permute(1, 0, 2)  # [w, b, c]
+        output = self.rnn(attend)
+        print(output.size())
+        return output
+
+
+def __test_atten_crnn__():
+
+    atten_crnn = AttendCRNN(1, 256, 27)
+
+    images = Variable(torch.randn((2, 1, 32, 100)))
+
+    atten_crnn(images)
+
+__test_atten_crnn__()
