@@ -84,7 +84,6 @@ nc = 1
 converter = utils.StrLabelConverter(opt.alphabet)
 criterion = CTCLoss()
 
-
 def adjust_lr(optimizer, epoch):
     lr = opt.lr * (0.2 ** (epoch // 10))
     for param_group in optimizer.param_groups:
@@ -175,7 +174,6 @@ def val(net, _dataset, criterion, max_iter=100):
         loss_avg.add(cost)
 
         _, preds = preds.max(2)
-        preds = preds.squeeze(2)
         preds = preds.transpose(1, 0).contiguous().view(-1)
         sim_preds = converter.decode(preds.data, preds_size.data, raw=False)
         for pred, target in zip(sim_preds, cpu_texts):
@@ -198,7 +196,6 @@ def train_batch(net, criterion, optimizer):
     t, l = converter.encode(cpu_texts)
     utils.load_data(text, t)
     utils.load_data(length, l)
-
     preds = crnn(image)
     preds_size = Variable(torch.IntTensor([preds.size(0)] * batch_size))
     cost = criterion(preds, text, preds_size, length) / batch_size
