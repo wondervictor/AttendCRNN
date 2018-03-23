@@ -108,12 +108,12 @@ class AttentionLayer(nn.Module):
         # print (atten_energies)
 
         softmax_atten_energies = Variable(torch.zeros((batch_size, seq_len, seq_len)))
+        if self.use_cuda:
+            softmax_atten_energies = softmax_atten_energies.cuda()
         for batch in xrange(batch_size):
             for i in xrange(seq_len):
                 softmax_atten_energies[batch, i] = atten_energies[batch, i] / torch.sum(atten_energies[batch, i])
-        # atten_energies = torch.stack([self.softmax(atten_energies[i]) for i in xrange(batch_size)])
-        # print (softmax_atten_energies)
-        z = torch.matmul(atten_energies, x_v)
+        z = torch.matmul(softmax_atten_energies, x_v)
         return z
 
 
