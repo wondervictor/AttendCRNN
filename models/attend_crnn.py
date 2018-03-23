@@ -105,15 +105,15 @@ class AttentionLayer(nn.Module):
         x_v = self.linear_v(x)
 
         atten_energies = torch.matmul(x_q, x_k.transpose(2, 1))
-        # print (atten_energies)
-
-        softmax_atten_energies = Variable(torch.zeros((batch_size, seq_len, seq_len)))
-        if self.use_cuda:
-            softmax_atten_energies = softmax_atten_energies.cuda()
-        for batch in xrange(batch_size):
-            for i in xrange(seq_len):
-                softmax_atten_energies[batch, i] = atten_energies[batch, i] / torch.sum(atten_energies[batch, i])
-        z = torch.matmul(softmax_atten_energies, x_v)
+        atten_energies = torch.stack([F.softmax(atten_energies[i]) for i in xrange(batch_size)])
+        # softmax_atten_energies = Variable(torch.zeros((batch_size, seq_len, seq_len)))
+        #
+        # if self.use_cuda:
+        #     softmax_atten_energies = softmax_atten_energies.cuda()
+        # for batch in xrange(batch_size):
+        #     for i in xrange(seq_len):
+        #         softmax_atten_energies[batch, i] = atten_energies[batch, i] / torch.sum(atten_energies[batch, i])
+        z = torch.matmul(atten_energies, x_v)
         return z
 
 
@@ -176,7 +176,6 @@ class AttendCRNN(nn.Module):
         conv_relu(6, True)  # 512x1x16
 
         self.cnn = cnn
-
         self.attend_layer = AttentionLayer(input_dim=512, output_dim=512, use_cuda=use_cuda)
         self.rnn = nn.Sequential(
             BidirectionalLSTM(512, hidden_size, hidden_size),
@@ -188,7 +187,6 @@ class AttendCRNN(nn.Module):
         assert h == 1, "the height of conv must be 1"
         conv = conv.squeeze(2)
         conv = conv.permute(0, 2, 1)  # [b, w, c]
-
         attend = self.attend_layer(conv)
         attend = attend.permute(1, 0, 2)  # [w, b, c]
         output = self.rnn(attend)
