@@ -34,8 +34,8 @@ parser.add_argument('--alphabet', type=str, default='0123456789abcdefghijklmnopq
 parser.add_argument('--experiment', default=None, help='Where to store samples and models')
 parser.add_argument('--display_interval', type=int, default=500, help='Interval to be displayed')
 parser.add_argument('--n_test_disp', type=int, default=10, help='Number of samples to display when test')
-parser.add_argument('--valInterval', type=int, default=5, help='Interval to be displayed')
-parser.add_argument('--saveInterval', type=int, default=5, help='Interval to be saved')
+parser.add_argument('--valInterval', type=int, default=100, help='Interval to be displayed')
+parser.add_argument('--saveInterval', type=int, default=100, help='Interval to be saved')
 parser.add_argument('--adam', action='store_true', help='Whether to use adam (default is rmsprop)')
 parser.add_argument('--adadelta', action='store_true', help='Whether to use adadelta (default is rmsprop)')
 parser.add_argument('--keep_ratio', action='store_true', help='whether to keep ratio for image resize')
@@ -84,9 +84,12 @@ nc = 1
 converter = utils.StrLabelConverter(opt.alphabet)
 criterion = CTCLoss()
 
+
 def adjust_lr(optimizer, epoch):
-    lr = opt.lr * (0.2 ** (epoch // 10))
+    lr = opt.lr * (0.2 ** (epoch // 5))
     for param_group in optimizer.param_groups:
+        if param_group['lr'] <= 0.000001:
+            return
         param_group['lr'] = lr
 
 
@@ -222,14 +225,13 @@ for epoch in range(opt.niter):
                   (epoch, opt.niter, i, len(train_loader), loss_avg.val()))
             loss_avg.reset()
 
-    if (epoch+1) % opt.valInterval == 0:
-        val(crnn, test_dataset, criterion)
+        if i % opt.valInterval == 0:
+            val(crnn, test_dataset, criterion)
 
-    # do checkpointing
-    if (epoch+1) % opt.saveInterval == 0:
-        torch.save(
-            crnn.state_dict(), '{0}/netCRNN_{1}_{2}.pth'.format(opt.experiment, epoch, i))
+        # do checkpointing
+        if i % opt.saveInterval == 0:
+            torch.save(
+                crnn.state_dict(), '{0}/netCRNN_{1}_{2}.pth'.format(opt.experiment, epoch, i))
 
-    if (epoch+1) % 5 == 0:
-
+    if (epoch + 1) % 5 == 0:
         adjust_lr(optimizer, epoch+1)
