@@ -98,3 +98,8 @@ ENV/
 
 # Python files
 *.pyc
+
+# result
+expr
+result
+log
