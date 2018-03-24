@@ -86,9 +86,9 @@ criterion = CTCLoss()
 
 
 def adjust_lr(optimizer, epoch):
-    lr = opt.lr * (0.2 ** (epoch // 5))
+    lr = opt.lr * (0.2 ** (epoch // 20))
     for param_group in optimizer.param_groups:
-        if param_group['lr'] <= 0.000001:
+        if param_group['lr'] <= 0.00001:
             return
         param_group['lr'] = lr
 
@@ -111,6 +111,15 @@ crnn.apply(weights_init)
 if opt.crnn != '':
     print('loading pretrained model from %s' % opt.crnn)
     crnn.load_state_dict(torch.load(opt.crnn))
+
+if not os.path.exists('log/'):
+    os.mkdir('log')
+
+logger = utils.Logger(
+    stdio=True,
+    log_file='log/{}_log.txt'.format('crnn_attention' if opt.use_attention else 'crnn')
+)
+
 print(crnn)
 
 image = torch.FloatTensor(opt.batch_size, 3, opt.imgH, opt.imgH)
@@ -141,7 +150,6 @@ else:
 
 
 def val(net, _dataset, criterion, max_iter=100):
-    print('Start val')
 
     for p in crnn.parameters():
         p.requires_grad = False
@@ -184,11 +192,11 @@ def val(net, _dataset, criterion, max_iter=100):
                 n_correct += 1
 
     raw_preds = converter.decode(preds.data, preds_size.data, raw=True)[:opt.n_test_disp]
-    for raw_pred, pred, gt in zip(raw_preds, sim_preds, cpu_texts):
-        print('%-20s => %-20s, gt: %-20s' % (raw_pred, pred, gt))
+    # for raw_pred, pred, gt in zip(raw_preds, sim_preds, cpu_texts):
+    #     print('%-20s => %-20s, gt: %-20s' % (raw_pred, pred, gt))
 
     accuracy = n_correct / float(max_iter * opt.batch_size)
-    print('Test loss: %f, accuray: %f' % (loss_avg.val(), accuracy))
+    logger.log('Test loss: %f, accuray: %f' % (loss_avg.val(), accuracy))
 
 
 def train_batch(net, criterion, optimizer):
@@ -208,6 +216,7 @@ def train_batch(net, criterion, optimizer):
     return cost
 
 
+logger.log('starting to train')
 for epoch in range(opt.niter):
     train_iter = iter(train_loader)
     i = 0
@@ -221,8 +230,8 @@ for epoch in range(opt.niter):
         i += 1
 
         if i % opt.display_interval == 0:
-            print('[%d/%d][%d/%d] Loss: %f' %
-                  (epoch, opt.niter, i, len(train_loader), loss_avg.val()))
+            logger.log('[%d/%d][%d/%d] Loss: %f'
+                       % (epoch, opt.niter, i, len(train_loader), loss_avg.val()))
             loss_avg.reset()
 
     if (epoch+1) % opt.valInterval == 0:

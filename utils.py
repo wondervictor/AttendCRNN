@@ -147,3 +147,20 @@ def assure_ratio(img):
         main = nn.UpsamplingBilinear2d(size=(h, h), scale_factor=None)
         img = main(img)
     return img
+
+
+class Logger(object):
+
+    def __init__(self, stdio=False, log_file=None):
+        self.logfile = log_file
+        self.stdio = stdio
+
+    def log(self, message):
+
+        if self.stdio:
+            print(message)
+
+        with open(self.logfile, 'a+') as f:
+            f.write(message+'\n')
+
+
