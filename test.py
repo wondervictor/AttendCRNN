@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+from collections import OrderedDict
 import torch
 import argparse
 import torch.utils.data
@@ -20,6 +20,12 @@ parser.add_argument('--cuda', action='store_true', help='use cuda')
 parser.add_argument('--imgH', type=int, default=32, help='the height of the input image to network')
 parser.add_argument('--imgW', type=int, default=100, help='the width of the input image to network')
 parser.add_argument('--nh', type=int, default=256, help='size of the lstm hidden state')
+parser.add_argument('--batch_size', type=int, default=64, help='batch size')
+parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
+parser.add_argument('--keep_ratio', action='store_true', help='whether to keep ratio for image resize')
+parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
+parser.add_argument('--alphabet', type=str, default='0123456789abcdefghijklmnopqrstuvwxyz')
+
 
 nc = 1
 num_classes = 37
@@ -41,7 +47,13 @@ else:
         nh=opt.nh
     )
 
-crnn.load_state_dict(torch.load(opt.model_path))
+state_dict = torch.load(opt.model_path)
+state_dict_rename = OrderedDict()
+for k, v in state_dict.items():
+    name = k[7:] # remove `module.`
+    state_dict_rename[name] = v
+crnn.load_state_dict(state_dict_rename)
+
 print("Load Trained Model Finished!")
 
 image = torch.FloatTensor(opt.batch_size, 3, opt.imgH, opt.imgH)
