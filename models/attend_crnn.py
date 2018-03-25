@@ -176,20 +176,29 @@ class AttendCRNN(nn.Module):
         conv_relu(6, True)  # 512x1x16
 
         self.cnn = cnn
-        self.attend_layer = AttentionLayer(input_dim=512, output_dim=512, use_cuda=use_cuda)
-        self.rnn = nn.Sequential(
-            BidirectionalLSTM(512, hidden_size, hidden_size),
-            BidirectionalLSTM(hidden_size, hidden_size, num_class))
+        self.attend_layer = AttentionLayer(input_dim=hidden_size, output_dim=hidden_size, use_cuda=use_cuda)
+        self.rnn1 = BidirectionalLSTM(512, hidden_size, hidden_size)
+        self.rnn2 = BidirectionalLSTM(hidden_size, hidden_size, num_class)
+        # self.rnn = nn.Sequential(
+        #     BidirectionalLSTM(512, hidden_size, hidden_size),
+        #     BidirectionalLSTM(hidden_size, hidden_size, num_class))
 
     def forward(self, x):
         conv = self.cnn(x)
         b, c, h, w = conv.size()
         assert h == 1, "the height of conv must be 1"
         conv = conv.squeeze(2)
-        conv = conv.permute(0, 2, 1)  # [b, w, c]
-        attend = self.attend_layer(conv)
+        # conv = conv.permute(0, 2, 1)  # [b, w, c]
+        # attend = self.attend_layer(conv)
+        # attend = attend.permute(1, 0, 2)  # [w, b, c]
+        # output = self.rnn(attend)
+
+        conv = conv.permute(2, 0, 1)  # [w, b, c]
+        rnn = self.rnn1(conv)
+        rnn = rnn.permute(1, 0, 2)    # [b, w, c]
+        attend = self.attend_layer(rnn)
         attend = attend.permute(1, 0, 2)  # [w, b, c]
-        output = self.rnn(attend)
+        output = self.rnn2(attend)
         return output
 
 

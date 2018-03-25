@@ -50,7 +50,7 @@ else:
 state_dict = torch.load(opt.model_path)
 state_dict_rename = OrderedDict()
 for k, v in state_dict.items():
-    name = k[7:] # remove `module.`
+    name = k[7:]
     state_dict_rename[name] = v
 crnn.load_state_dict(state_dict_rename)
 
