@@ -14,9 +14,9 @@ import models.attend_crnn as attend_crnn
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_path', required=True, help='Trained model path')
-parser.add_argument('--use_attention', type='store_true', help='Use Attention')
+parser.add_argument('--use_attention', action='store_true', help='Use Attention')
 parser.add_argument('--data_dir', required=True, help='path to dataset')
-parser.add_argument('--cuda', type='store_true', help='use cuda')
+parser.add_argument('--cuda', action='store_true', help='use cuda')
 parser.add_argument('--imgH', type=int, default=32, help='the height of the input image to network')
 parser.add_argument('--imgW', type=int, default=100, help='the width of the input image to network')
 parser.add_argument('--nh', type=int, default=256, help='size of the lstm hidden state')
@@ -119,5 +119,5 @@ def test(net, _dataset, criterion):
 
     print("[Test Result] Loss: {} Accuracy: {}".format(loss_avg.val(), accuracy))
 
-    
+
 test(crnn, test_dataset, criterion)
