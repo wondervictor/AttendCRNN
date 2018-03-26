@@ -88,7 +88,7 @@ criterion = CTCLoss()
 def adjust_lr(optimizer, epoch):
     lr = opt.lr * (0.1 ** (epoch // 200))
     for param_group in optimizer.param_groups:
-        if param_group['lr'] <= 0.00001:
+        if param_group['lr'] <= 0.000001:
             return
         param_group['lr'] = lr
 
@@ -179,7 +179,7 @@ def val(net, _dataset, criterion, max_iter=100):
         utils.load_data(text, t)
         utils.load_data(length, l)
 
-        preds = crnn(image)
+        preds, _ = crnn(image)
         preds_size = Variable(torch.IntTensor([preds.size(0)] * batch_size))
         cost = criterion(preds, text, preds_size, length) / batch_size
         loss_avg.add(cost)

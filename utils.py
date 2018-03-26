@@ -5,6 +5,11 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 import collections
+import scipy.misc
+
+
+def plot_attention(atten, dir,name):
+    scipy.misc.imsave(dir+'/'+name+'.jpg', atten)
 
 
 class StrLabelConverter(object):

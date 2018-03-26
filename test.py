@@ -80,7 +80,7 @@ text = Variable(text)
 length = Variable(length)
 
 
-def test(net, _dataset, criterion):
+def test(net, _dataset, criterion, save_attention=False):
 
     for p in crnn.parameters():
         p.requires_grad = False
@@ -88,7 +88,6 @@ def test(net, _dataset, criterion):
     net.eval()
     data_loader = torch.utils.data.DataLoader(
         _dataset,
-        shuffle=True,
         batch_size=opt.batch_size,
         num_workers=int(opt.workers),
         collate_fn=dataset.AlignCollate(img_height=opt.imgH, img_weight=opt.imgW, keep_ratio=opt.keep_ratio)
@@ -109,7 +108,7 @@ def test(net, _dataset, criterion):
         utils.load_data(text, t)
         utils.load_data(length, l)
 
-        preds = crnn(image)
+        preds, atten_energy = crnn(image)
         preds_size = Variable(torch.IntTensor([preds.size(0)] * batch_size))
         cost = criterion(preds, text, preds_size, length) / batch_size
         loss_avg.add(cost)
@@ -120,7 +119,7 @@ def test(net, _dataset, criterion):
         for pred, target in zip(sim_preds, cpu_texts):
             if pred == target.lower():
                 n_correct += 1
-
+        utils.plot_attention(atten_energy.cpu().data.numpy(), 'output_attention', '%s' % i)
         raw_preds = converter.decode(preds.data, preds_size.data, raw=True) # [:opt.n_test_disp]
 
         for raw_pred, pred, gt in zip(raw_preds, sim_preds, cpu_texts):
