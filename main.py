@@ -86,10 +86,10 @@ criterion = CTCLoss()
 
 
 def adjust_lr(optimizer, epoch):
-    lr = opt.lr * (0.1 ** (epoch // 200))
+    lr = opt.lr * (0.2 ** (epoch // 200))
     for param_group in optimizer.param_groups:
         if param_group['lr'] <= 0.00001:
-            return
+            lr = 0.00001
         param_group['lr'] = lr
 
 

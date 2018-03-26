@@ -110,10 +110,11 @@ def test(net, _dataset, criterion):
         utils.load_data(length, l)
 
         preds = crnn(image)
-        preds_size = Variable(torch.IntTensor([preds.size(0)] * batch_size))
+        print('----')
+	preds_size = Variable(torch.IntTensor([preds.size(0)] * batch_size))
         cost = criterion(preds, text, preds_size, length) / batch_size
         loss_avg.add(cost)
-
+	exit(0)
         _, preds = preds.max(2)
         preds = preds.transpose(1, 0).contiguous().view(-1)
         sim_preds = converter.decode(preds.data, preds_size.data, raw=False)
