@@ -179,7 +179,7 @@ def val(net, _dataset, criterion, max_iter=100):
         utils.load_data(text, t)
         utils.load_data(length, l)
 
-        preds = crnn(image)
+        preds, _ = crnn(image)
         preds_size = Variable(torch.IntTensor([preds.size(0)] * batch_size))
         cost = criterion(preds, text, preds_size, length) / batch_size
         loss_avg.add(cost)

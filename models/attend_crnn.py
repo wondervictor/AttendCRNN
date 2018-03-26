@@ -25,56 +25,6 @@ class BidirectionalLSTM(nn.Module):
         return output
 
 
-class Attn(nn.Module):
-    def __init__(self, method, hidden_size):
-        super(Attn, self).__init__()
-
-        self.method = method
-        self.hidden_size = hidden_size
-
-        if self.method == 'general':
-            self.attn = nn.Linear(self.hidden_size, hidden_size)
-
-        elif self.method == 'concat':
-            self.attn = nn.Linear(self.hidden_size * 2, hidden_size)
-            self.v = nn.Parameter(torch.FloatTensor(1, hidden_size))
-
-    def forward(self, hidden, encoder_outputs):
-        max_len = encoder_outputs.size(0)
-        this_batch_size = encoder_outputs.size(1)
-
-        # Create variable to store attention energies
-        attn_energies = Variable(torch.zeros(this_batch_size, max_len))  # B x S
-
-        if USE_CUDA:
-            attn_energies = attn_energies.cuda()
-
-        # For each batch of encoder outputs
-        for b in range(this_batch_size):
-            # Calculate energy for each encoder output
-            for i in range(max_len):
-                attn_energies[b, i] = self.score(hidden[:, b], encoder_outputs[i, b].unsqueeze(0))
-
-        # Normalize energies to weights in range 0 to 1, resize to 1 x B x S
-        return F.softmax(attn_energies).unsqueeze(1)
-
-    def score(self, hidden, encoder_output):
-
-        if self.method == 'dot':
-            energy = hidden.dot(encoder_output)
-            return energy
-
-        elif self.method == 'general':
-            energy = self.attn(encoder_output)
-            energy = hidden.dot(energy)
-            return energy
-
-        elif self.method == 'concat':
-            energy = self.attn(torch.cat((hidden, encoder_output), 1))
-            energy = self.v.dot(energy)
-            return energy
-
-
 class AttentionLayer(nn.Module):
     def __init__(self, input_dim, output_dim, use_cuda, relation_aware=False):
         super(AttentionLayer, self).__init__()
@@ -85,17 +35,6 @@ class AttentionLayer(nn.Module):
         self.linear_v = nn.Linear(input_dim, output_dim)
         self.linear_q = nn.Linear(input_dim, output_dim)
         self.linear_k = nn.Linear(input_dim, output_dim)
-
-        self.softmax = nn.Softmax()
-        # self.V = nn.Parameter(torch.FloatTensor(input_dim, output_dim))
-        # self.Q = nn.Parameter(torch.FloatTensor(input_dim, output_dim))
-        # self.K = nn.Parameter(torch.FloatTensor(input_dim, output_dim))
-
-    def score(self, x, y):
-        x = x * self.Q
-        y = y * self.K
-        score = x.dot(y) / np.sqrt(self.output_dim)
-        return score
 
     def forward(self, x):
 
@@ -116,7 +55,7 @@ class AttentionLayer(nn.Module):
 	print(atten_energies[0].cpu().data.numpy())
 	print(torch.max(atten_energies[10], 1))
         z = torch.matmul(atten_energies, x_v)
-        return z
+        return z, atten_energies
 
 
 def __test__attention_layer():
@@ -198,10 +137,10 @@ class AttendCRNN(nn.Module):
         conv = conv.permute(2, 0, 1)  # [w, b, c]
         rnn = self.rnn1(conv)
         rnn = rnn.permute(1, 0, 2)    # [b, w, c]
-        attend = self.attend_layer(rnn)
+        attend, attend_energies = self.attend_layer(rnn)
         attend = attend.permute(1, 0, 2)  # [w, b, c]
         output = self.rnn2(attend)
-        return output
+        return output, attend_energies
 
 
 def __test_atten_crnn__():
