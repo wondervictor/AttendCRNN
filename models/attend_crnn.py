@@ -65,16 +65,16 @@ class AttentionLayer(nn.Module):
             x_m = x_k + self.alpha_K
             atten_energies = torch.matmul(x_q, x_m.transpose(2, 1))
             _v = x_v + self.alpha_V
-            z = torch.matmul(atten_energies, x_v)
+            z = torch.matmul(atten_energies, _v)
 
         return z, atten_energies
 
 
 def __test__attention_layer():
-    atten_layer = AttentionLayer(input_dim=5, output_dim=4, use_cuda=False)
+    atten_layer = AttentionLayer(input_dim=5, output_dim=4, use_cuda=True)
     x = Variable(torch.randn((2, 3, 5)))
     print(x)
-    result = atten_layer(x)
+    result, _ = atten_layer(x)
     print(result)
     y = Variable(torch.randn((2, 3, 4)))
     loss_criterion = nn.MSELoss()
@@ -87,7 +87,7 @@ def __test__attention_layer():
     optimizer.step()
 
 
-# __test__attention_layer()
+__test__attention_layer()
 
 
 class AttendCRNN(nn.Module):
