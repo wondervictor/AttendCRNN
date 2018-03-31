@@ -26,15 +26,20 @@ class BidirectionalLSTM(nn.Module):
 
 
 class AttentionLayer(nn.Module):
-    def __init__(self, input_dim, output_dim, use_cuda, relation_aware=False):
+    def __init__(self, input_dim, output_dim, use_cuda, seqlen=26, relation_aware=False):
         super(AttentionLayer, self).__init__()
 
         self.output_dim = output_dim
         self.use_cuda = use_cuda
+        self.relation_aware = relation_aware
 
         self.linear_v = nn.Linear(input_dim, output_dim)
         self.linear_q = nn.Linear(input_dim, output_dim)
         self.linear_k = nn.Linear(input_dim, output_dim)
+
+        if self.relation_aware:
+            self.alpha_V = nn.Parameter(torch.zeros((seqlen, seqlen)))
+            self.alpha_K = nn.Parameter(torch.zeros((seqlen, seqlen)))
 
     def forward(self, x):
 
@@ -43,16 +48,25 @@ class AttentionLayer(nn.Module):
         x_q = self.linear_q(x)
         x_v = self.linear_v(x)
 
-        atten_energies = torch.matmul(x_q, x_k.transpose(2, 1))
-        atten_energies = torch.stack([F.softmax(atten_energies[i]) for i in xrange(batch_size)])
-        # softmax_atten_energies = Variable(torch.zeros((batch_size, seq_len, seq_len)))
-        #
-        # if self.use_cuda:
-        #     softmax_atten_energies = softmax_atten_energies.cuda()
-        # for batch in xrange(batch_size):
-        #     for i in xrange(seq_len):
-        #         softmax_atten_energies[batch, i] = atten_energies[batch, i] / torch.sum(atten_energies[batch, i])
-        z = torch.matmul(atten_energies, x_v)
+        if not self.relation_aware:
+            atten_energies = torch.matmul(x_q, x_k.transpose(2, 1))
+            atten_energies = torch.stack([F.softmax(atten_energies[i]) for i in xrange(batch_size)])
+
+
+            # softmax_atten_energies = Variable(torch.zeros((batch_size, seq_len, seq_len)))
+            #
+            # if self.use_cuda:
+            #     softmax_atten_energies = softmax_atten_energies.cuda()
+            # for batch in xrange(batch_size):
+            #     for i in xrange(seq_len):
+            #         softmax_atten_energies[batch, i] = atten_energies[batch, i] / torch.sum(atten_energies[batch, i])
+            z = torch.matmul(atten_energies, x_v)
+        else:
+            x_m = x_k + self.alpha_K
+            atten_energies = torch.matmul(x_q, x_m.transpose(2, 1))
+            _v = x_v + self.alpha_V
+            z = torch.matmul(atten_energies, x_v)
+
         return z, atten_energies
 
 
