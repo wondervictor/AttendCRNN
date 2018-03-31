@@ -87,7 +87,7 @@ def __test__attention_layer():
     optimizer.step()
 
 
-__test__attention_layer()
+# __test__attention_layer()
 
 
 class AttendCRNN(nn.Module):
