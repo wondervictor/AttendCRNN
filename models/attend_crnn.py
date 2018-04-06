@@ -68,14 +68,13 @@ class AttentionLayer(nn.Module):
             if self.use_cuda:
                 z = z.cuda()
                 atten_energies = atten_energies.cuda()
-            for batch in xrange(batch_size):
-                for i in xrange(seq_len):
-                    x_k_ = x_k[batch] + self.alpha_K[i]
-                    atten_energy = torch.matmul(x_q[batch][i].unsqueeze(0), x_k_.transpose(1, 0))/math.sqrt(self.output_dim)
-                    atten_energy = F.softmax(atten_energy)
-                    x_v_ = x_v[batch][i] + self.alpha_V[i]
-                    z[batch, i] = torch.matmul(atten_energy, x_v_)
-                    atten_energies[batch, i] = atten_energy
+            for i in xrange(seq_len):
+                x_k_ = x_k + self.alpha_K[i]
+                atten_energy = torch.matmul(x_q[:, i].unsqueeze(1), x_k_.transpose(2, 1))/math.sqrt(self.output_dim)
+                atten_energy = F.softmax(atten_energy.squeeze(1)).unsqueeze(1)
+                x_v_ = x_v + self.alpha_V[i]
+                z[:, i] = torch.matmul(atten_energy, x_v_)
+                atten_energies[:, i] = atten_energy
         return z, atten_energies
 
 
@@ -96,7 +95,7 @@ def __test__attention_layer():
     optimizer.step()
 
 
-# __test__attention_layer()
+__test__attention_layer()
 
 
 class AttendCRNN(nn.Module):

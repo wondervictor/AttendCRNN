@@ -208,7 +208,7 @@ def train_batch(net, criterion, optimizer):
     t, l = converter.encode(cpu_texts)
     utils.load_data(text, t)
     utils.load_data(length, l)
-    preds = crnn(image)
+    preds, _ = crnn(image)
     preds_size = Variable(torch.IntTensor([preds.size(0)] * batch_size))
     cost = criterion(preds, text, preds_size, length) / batch_size
     crnn.zero_grad()
