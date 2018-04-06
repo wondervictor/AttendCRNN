@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import math
 import torch
 import numpy as np
 import torch.nn as nn
@@ -38,8 +39,8 @@ class AttentionLayer(nn.Module):
         self.linear_k = nn.Linear(input_dim, output_dim)
 
         if self.relation_aware:
-            self.alpha_V = nn.Parameter(torch.zeros((seqlen, seqlen)))
-            self.alpha_K = nn.Parameter(torch.zeros((seqlen, seqlen)))
+            self.alpha_V = nn.Parameter(torch.zeros((seqlen, seqlen, output_dim)))
+            self.alpha_K = nn.Parameter(torch.zeros((seqlen, seqlen, output_dim)))
 
     def forward(self, x):
 
@@ -49,7 +50,7 @@ class AttentionLayer(nn.Module):
         x_v = self.linear_v(x)
 
         if not self.relation_aware:
-            atten_energies = torch.matmul(x_q, x_k.transpose(2, 1))
+            atten_energies = torch.matmul(x_q, x_k.transpose(2, 1))/math.sqrt(self.output_dim)
             atten_energies = torch.stack([F.softmax(atten_energies[i]) for i in xrange(batch_size)])
 
 
@@ -62,16 +63,24 @@ class AttentionLayer(nn.Module):
             #         softmax_atten_energies[batch, i] = atten_energies[batch, i] / torch.sum(atten_energies[batch, i])
             z = torch.matmul(atten_energies, x_v)
         else:
-            x_m = x_k + self.alpha_K
-            atten_energies = torch.matmul(x_q, x_m.transpose(2, 1))
-            _v = x_v + self.alpha_V
-            z = torch.matmul(atten_energies, _v)
-
+            atten_energies = Variable(torch.zeros((batch_size, seq_len, seq_len)))
+            z = Variable(torch.zeros((batch_size, seq_len, self.output_dim)))
+            if self.use_cuda:
+                z = z.cuda()
+                atten_energies = atten_energies.cuda()
+            for batch in xrange(batch_size):
+                for i in xrange(seq_len):
+                    x_k_ = x_k[batch] + self.alpha_K[i]
+                    atten_energy = torch.matmul(x_q[batch][i].unsqueeze(0), x_k_.transpose(1, 0))/math.sqrt(self.output_dim)
+                    atten_energy = F.softmax(atten_energy)
+                    x_v_ = x_v[batch][i] + self.alpha_V[i]
+                    z[batch, i] = torch.matmul(atten_energy, x_v_)
+                    atten_energies[batch, i] = atten_energy
         return z, atten_energies
 
 
 def __test__attention_layer():
-    atten_layer = AttentionLayer(input_dim=5, output_dim=4, use_cuda=True)
+    atten_layer = AttentionLayer(input_dim=5, output_dim=4, seqlen=3, use_cuda=False, relation_aware=True)
     x = Variable(torch.randn((2, 3, 5)))
     print(x)
     result, _ = atten_layer(x)
@@ -91,7 +100,7 @@ def __test__attention_layer():
 
 
 class AttendCRNN(nn.Module):
-    def __init__(self, nc, hidden_size, num_class, use_cuda, leaky_relu=True):
+    def __init__(self, nc, hidden_size, num_class, use_cuda, relation_aware, leaky_relu=True):
         super(AttendCRNN, self).__init__()
 
         ks = [3, 3, 3, 3, 3, 3, 2]
@@ -129,7 +138,12 @@ class AttendCRNN(nn.Module):
         conv_relu(6, True)  # 512x1x16
 
         self.cnn = cnn
-        self.attend_layer = AttentionLayer(input_dim=hidden_size, output_dim=hidden_size, use_cuda=use_cuda)
+        self.attend_layer = AttentionLayer(
+            input_dim=hidden_size,
+            output_dim=hidden_size,
+            use_cuda=use_cuda,
+            relation_aware=relation_aware
+        )
         self.rnn1 = BidirectionalLSTM(512, hidden_size, hidden_size)
         self.rnn2 = BidirectionalLSTM(hidden_size, hidden_size, num_class)
         # self.rnn = nn.Sequential(

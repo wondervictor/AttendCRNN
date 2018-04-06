@@ -17,6 +17,7 @@ import models.attend_crnn as attend_crnn
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--use_attention', action='store_true', help='use self attention')
+parser.add_argument('--relation_aware', action='store_true', help='use relation aware')
 parser.add_argument('--trainroot', required=True, help='path to dataset')
 parser.add_argument('--valroot', required=True, help='path to dataset')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
@@ -103,7 +104,7 @@ def weights_init(m):
         m.bias.data.fill_(0)
 
 
-crnn = attend_crnn.AttendCRNN(nc=nc, num_class=nclass, hidden_size=opt.nh, use_cuda=opt.cuda) \
+crnn = attend_crnn.AttendCRNN(nc=nc, num_class=nclass, hidden_size=opt.nh, use_cuda=opt.cuda, relation_aware=opt.relation_aware) \
     if opt.use_attention else crnn.CRNN(opt.imgH, nc, nclass, opt.nh)
 
 
