@@ -34,9 +34,9 @@ class AttentionLayer(nn.Module):
         self.use_cuda = use_cuda
         self.relation_aware = relation_aware
 
-        self.linear_v = nn.Linear(input_dim, output_dim)
-        self.linear_q = nn.Linear(input_dim, output_dim)
-        self.linear_k = nn.Linear(input_dim, output_dim)
+        self.linear_v = nn.Linear(input_dim, output_dim, bias=False)
+        self.linear_q = nn.Linear(input_dim, output_dim, bias=False)
+        self.linear_k = nn.Linear(input_dim, output_dim, bias=False)
 
         if self.relation_aware:
             self.alpha_V = nn.Parameter(torch.zeros((seqlen, seqlen, output_dim)))
@@ -52,15 +52,6 @@ class AttentionLayer(nn.Module):
         if not self.relation_aware:
             atten_energies = torch.matmul(x_q, x_k.transpose(2, 1))/math.sqrt(self.output_dim)
             atten_energies = torch.stack([F.softmax(atten_energies[i]) for i in xrange(batch_size)])
-
-
-            # softmax_atten_energies = Variable(torch.zeros((batch_size, seq_len, seq_len)))
-            #
-            # if self.use_cuda:
-            #     softmax_atten_energies = softmax_atten_energies.cuda()
-            # for batch in xrange(batch_size):
-            #     for i in xrange(seq_len):
-            #         softmax_atten_energies[batch, i] = atten_energies[batch, i] / torch.sum(atten_energies[batch, i])
             z = torch.matmul(atten_energies, x_v)
         else:
             atten_energies = Variable(torch.zeros((batch_size, seq_len, seq_len)))

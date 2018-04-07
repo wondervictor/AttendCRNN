@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from collections import OrderedDict
 import torch
+import os
 import argparse
 import torch.utils.data
 from torch.autograd import Variable
@@ -14,13 +15,14 @@ import models.attend_crnn as attend_crnn
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_path', required=True, help='Trained model path')
+parser.add_argument('--relation_aware', action='store_true', help='use relation aware')
 parser.add_argument('--use_attention', action='store_true', help='Use Attention')
 parser.add_argument('--data_dir', required=True, help='path to dataset')
 parser.add_argument('--cuda', action='store_true', help='use cuda')
 parser.add_argument('--imgH', type=int, default=32, help='the height of the input image to network')
 parser.add_argument('--imgW', type=int, default=100, help='the width of the input image to network')
 parser.add_argument('--nh', type=int, default=256, help='size of the lstm hidden state')
-parser.add_argument('--batch_size', type=int, default=64, help='batch size')
+parser.add_argument('--batch_size', type=int, default=1, help='batch size')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--keep_ratio', action='store_true', help='whether to keep ratio for image resize')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
@@ -37,7 +39,8 @@ if opt.use_attention:
         nc=nc,
         num_class=num_classes,
         hidden_size=opt.nh,
-        use_cuda=opt.cuda
+        use_cuda=opt.cuda,
+        relation_aware=opt.relation_aware
     )
 else:
     crnn = crnn.CRNN(
@@ -80,6 +83,10 @@ text = Variable(text)
 length = Variable(length)
 
 
+attend_img_file = 'output_relation_attention' if opt.relation_aware else 'output_attention'
+if not os.path.exists(attend_img_file):
+    os.mkdir(attend_img_file)
+
 def test(net, _dataset, criterion, save_attention=False):
 
     for p in crnn.parameters():
@@ -96,11 +103,10 @@ def test(net, _dataset, criterion, save_attention=False):
 
     n_correct = 0
     loss_avg = utils.Averager()
-
+    img_id = 0
     result_file = open('result/{}_test_result.txt'.format('crnn_attention' if opt.use_attention else 'crnn'), 'a+')
     for i in range(len(data_loader)):
         data = val_iter.next()
-        i += 1
         cpu_images, cpu_texts = data
         batch_size = cpu_images.size(0)
         utils.load_data(image, cpu_images)
@@ -108,28 +114,23 @@ def test(net, _dataset, criterion, save_attention=False):
         utils.load_data(text, t)
         utils.load_data(length, l)
 
-<<<<<<< HEAD
-        preds = crnn(image)
-        print('----')
-	preds_size = Variable(torch.IntTensor([preds.size(0)] * batch_size))
-=======
         preds, atten_energy = crnn(image)
         preds_size = Variable(torch.IntTensor([preds.size(0)] * batch_size))
->>>>>>> 25a3dfb8ad9fce6f25d59ca1dfeb8c18f2a72980
         cost = criterion(preds, text, preds_size, length) / batch_size
         loss_avg.add(cost)
-	exit(0)
         _, preds = preds.max(2)
         preds = preds.transpose(1, 0).contiguous().view(-1)
         sim_preds = converter.decode(preds.data, preds_size.data, raw=False)
         for pred, target in zip(sim_preds, cpu_texts):
             if pred == target.lower():
                 n_correct += 1
-        utils.plot_attention(atten_energy.cpu().data.numpy(), 'output_attention', '%s' % i)
-        raw_preds = converter.decode(preds.data, preds_size.data, raw=True) # [:opt.n_test_disp]
+
+        utils.plot_attention(atten_energy.cpu().data.numpy(), attend_img_file, '%s' % img_id)
+        raw_preds = converter.decode(preds.data, preds_size.data, raw=True)  # [:opt.n_test_disp]
 
         for raw_pred, pred, gt in zip(raw_preds, sim_preds, cpu_texts):
-            result_file.write('%-20s => %-20s, gt: %-20s\n' % (raw_pred, pred, gt))
+            result_file.write('[%s] %-20s => %-20s, gt: %-20s\n' % (img_id, raw_pred, pred, gt))
+        img_id += 1
 
     result_file.close()
     accuracy = n_correct / float(len(data_loader) * opt.batch_size)

@@ -36,15 +36,15 @@ if __name__ == '__main__':
 
     opt = parser.parse_args()
     crnn_attention = open_log_txt(opt.log_dir + '/crnn_attention_log.txt')
-    crnn_attention1 = open_log_txt(opt.log_dir + '/crnn_attention_log_1.txt')
+    crnn_attention1 = open_log_txt(opt.log_dir + '/crnn_attention_relation_aware_log.txt')
     crnn = open_log_txt(opt.log_dir + '/crnn_log.txt')
 
     plt.figure(1, figsize=(20, 6))
     sbn.set_style('dark')
     plt.title('Training Loss')
-    plt.plot(crnn_attention[0], 'r-', label='crnn_attention')
-    plt.plot(crnn[0], 'g-', label='crnn')
-    plt.plot(crnn_attention1[0], 'y-', label='crnn_attention_v1')
+    plt.plot(crnn_attention[0], 'r-', label='CRNN Attention')
+    plt.plot(crnn[0], 'g-', label='CRNN')
+    plt.plot(crnn_attention1[0], 'y-', label='CRNN Attention Relation Aware')
     plt.xlabel('train iter')
     plt.ylabel('loss')
     plt.legend()
@@ -52,9 +52,9 @@ if __name__ == '__main__':
 
     plt.figure(2, figsize=(20, 6))
     plt.title('Testing Loss')
-    plt.plot([x[0] for x in crnn_attention[1]], 'r-', label='crnn_attention')
-    plt.plot([x[0] for x in crnn[1]], 'g-', label='crnn')
-    plt.plot([x[0] for x in crnn_attention1[1]], 'y-', label='crnn_attention_v1')
+    plt.plot([x[0] for x in crnn_attention[1]], 'r-', label='CRNN Attention')
+    plt.plot([x[0] for x in crnn[1]], 'g-', label='CRNN')
+    plt.plot([x[0] for x in crnn_attention1[1]], 'y-', label='CRNN Attention Relation Aware')
     plt.xlabel('test iter')
     plt.ylabel('loss')
     plt.legend()
@@ -62,11 +62,17 @@ if __name__ == '__main__':
 
     plt.figure(3, figsize=(20, 6))
     plt.title('Testing Accuracy')
-    plt.plot([x[1] for x in crnn_attention[1]], 'r-', label='crnn_attention')
-    plt.plot([x[1] for x in crnn[1]], 'g-', label='crnn')
-    plt.plot([x[1] for x in crnn_attention1[1]], 'y-', label='crnn_attention_v1')
+    plt.plot([x[1] for x in crnn_attention[1]], 'r-', label='CRNN Attention')
+    plt.plot([x[1] for x in crnn[1]], 'g-', label='CRNN')
+    plt.plot([x[1] for x in crnn_attention1[1]], 'y-', label='CRNN Attention Relation Aware')
     plt.xlabel('test iter')
     plt.ylabel('test accuracy')
+    """
+    0.410239
+    0.409242
+    0.439827
+    """
+    print(max([x[1] for x in crnn_attention1[1]]))
     print(max([x[1] for x in crnn_attention[1]]))
     print(max([x[1] for x in crnn[1]]))
     plt.legend()
