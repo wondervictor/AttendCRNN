@@ -116,9 +116,17 @@ if opt.crnn != '':
 if not os.path.exists('log/'):
     os.mkdir('log')
 
+if opt.relation_aware:
+    log_name = 'crnn_attention_relation'
+else:
+    if opt.use_attention:
+        log_name = 'crnn_attention'
+    else:
+        log_name = 'crnn'
+
 logger = utils.Logger(
     stdio=True,
-    log_file='log/{}_log.txt'.format('crnn_attention' if opt.use_attention else 'crnn')
+    log_file='log/{}_log.txt'.format(log_name)
 )
 
 print(crnn)
