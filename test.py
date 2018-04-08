@@ -125,12 +125,14 @@ def test(net, _dataset, criterion, save_attention=False):
             if pred == target.lower():
                 n_correct += 1
 
-        utils.plot_attention(atten_energy.cpu().data.numpy(), attend_img_file, '%s' % img_id)
         raw_preds = converter.decode(preds.data, preds_size.data, raw=True)  # [:opt.n_test_disp]
 
+        m = 0
         for raw_pred, pred, gt in zip(raw_preds, sim_preds, cpu_texts):
             result_file.write('[%s] %-20s => %-20s, gt: %-20s\n' % (img_id, raw_pred, pred, gt))
-        img_id += 1
+            utils.plot_attention(atten_energy[m].cpu().data.numpy(), attend_img_file, '%s' % img_id)
+            m += 1
+            img_id += 1
 
     result_file.close()
     accuracy = n_correct / float(len(data_loader) * opt.batch_size)

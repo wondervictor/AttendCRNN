@@ -36,7 +36,7 @@ if __name__ == '__main__':
 
     opt = parser.parse_args()
     crnn_attention = open_log_txt(opt.log_dir + '/crnn_attention_log.txt')
-    crnn_attention1 = open_log_txt(opt.log_dir + '/crnn_attention_relation_aware_log.txt')
+    crnn_attention1 = open_log_txt(opt.log_dir + '/crnn_attention_relation_log.txt')
     crnn = open_log_txt(opt.log_dir + '/crnn_log.txt')
 
     plt.figure(1, figsize=(20, 6))
@@ -68,10 +68,13 @@ if __name__ == '__main__':
     plt.xlabel('test iter')
     plt.ylabel('test accuracy')
     """
-    0.410239
-    0.409242
+    0.419548 / 844
+    0.398936 / 150
     0.439827
     """
+
+    print np.argmax([x[1] for x in crnn_attention1[1]])
+    print np.argmax([x[1] for x in crnn_attention[1]])
     print(max([x[1] for x in crnn_attention1[1]]))
     print(max([x[1] for x in crnn_attention[1]]))
     print(max([x[1] for x in crnn[1]]))
